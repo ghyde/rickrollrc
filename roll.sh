@@ -77,12 +77,12 @@ audpid=$!
 python <(cat <<EOF
 import sys
 import time
-fps = 25; time_per_frame = 1.0 / fps
+fps = 30; time_per_frame = 1.0 / fps
 buf = ''; frame = 0; next_frame = 0
 begin = time.time()
 try:
   for i, line in enumerate(sys.stdin):
-    if i % 32 == 0:
+    if i % fps == 0:
       frame += 1
       sys.stdout.write(buf); buf = ''
       elapsed = time.time() - begin
