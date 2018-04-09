@@ -56,18 +56,28 @@ obtainium() {
 }
 echo -en "\x1b[?25l \x1b[2J \x1b[H"  # Hide cursor, clear screen.
 
+# Pre-fetch video file
+local_video="/tmp/roll.video.bz2"
+[ -f $local_video ] || obtainium $video >$local_video
+
+# Pre-fetch audio file
+if has? afplay || has? aplay; then
+  local_audio="/tmp/roll.s16"
+  [ -f $local_audio ] || obtainium $audio_raw >$local_audio
+fi
+
 #echo -e "${yell}Fetching audio..."
 if has? afplay; then
-  # On Mac OS, if |afplay| available, pre-fetch compressed audio.
-  [ -f /tmp/roll.s16 ] || obtainium $audio_raw >/tmp/roll.s16
-  afplay /tmp/roll.s16 &
+  # Use `afplay` if available (Mac OS)
+  afplay $local_audio &
 elif has? aplay; then
-  # On Linux, if |aplay| available, stream raw sound.
-  obtainium $audio_raw | aplay -Dplug:default -q -f S16_LE -r 8000 &
+  # Use `aplay` if available (Linux)
+  aplay -Dplug:default -q -f S16_LE -r 16000 $local_audio &
 elif has? play; then
-  # On Cygwin, if |play| is available (via sox), pre-fetch compressed audio.
-  obtainium $audio_gsm >/tmp/roll.gsm.wav
-  play -q /tmp/roll.gsm.wav &
+  # Use `play` if available (via sox in Cygwin)
+  local_audio="/tmp/roll.gsm.wav"
+  [ -f $local_audio ] || obtainium $audio_gsm >$local_audio
+  play -q $local_audio &
 fi
 audpid=$!
 
@@ -95,4 +105,4 @@ try:
 except KeyboardInterrupt:
   pass
 EOF
-) < <(obtainium $video | bunzip2 -q 2> /dev/null)
+) < <(bunzip2 -cq /tmp/roll.video.bz2 2>/dev/null)
